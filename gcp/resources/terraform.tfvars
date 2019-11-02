@@ -1,7 +1,7 @@
- region = "europe-west1"
+region = "europe-west1"
 
- projectID = "sandbox-233511"
+projectID = "sandbox-233511"
  
- google_storage_bucket_name = "dev-fest-dataproc"
+google_storage_bucket_name_dataproc = "devfest-dataproc"
 
- google_storage_bucket_location = "EU"
+google_storage_bucket_name_jars = "devfest-jars"
