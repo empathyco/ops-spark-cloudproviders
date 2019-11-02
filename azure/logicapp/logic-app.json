@@ -1,0 +1,274 @@
+{
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {},
+    "triggers": {
+        "manual": {
+            "type": "Request",
+            "kind": "Http",
+            "inputs": {
+                "schema": {
+                    "properties": {
+                        "startTime": {
+                            "type": "string"
+                        }
+                    },
+                    "type": "object"
+                }
+            },
+            "description": "You can update request schema to pass in custom values for actions to be executed."
+        }
+    },
+    "actions": {
+        "Compose": {
+            "runAfter": {
+                "Initialize_variable": [
+                    "Succeeded"
+                ]
+            },
+            "type": "Compose",
+            "inputs": "@variables('id')"
+        },
+        "Condition": {
+            "actions": {
+                "Terminate": {
+                    "runAfter": {},
+                    "type": "Terminate",
+                    "inputs": {
+                        "runStatus": "Succeeded"
+                    }
+                }
+            },
+            "runAfter": {
+                "Until": [
+                    "Succeeded"
+                ]
+            },
+            "else": {
+                "actions": {
+                    "Terminate_2": {
+                        "runAfter": {},
+                        "type": "Terminate",
+                        "inputs": {
+                            "runError": {
+                                "code": "@variables('state')"
+                            },
+                            "runStatus": "Failed"
+                        }
+                    }
+                }
+            },
+            "expression": {
+                "and": [
+                    {
+                        "equals": [
+                            "@variables('state')",
+                            "dead"
+                        ]
+                    }
+                ]
+            },
+            "type": "If"
+        },
+        "HTTP": {
+            "runAfter": {
+                "Compose": [
+                    "Succeeded"
+                ]
+            },
+            "type": "Http",
+            "inputs": {
+                "authentication": {
+                    "password": "Terraform123!",
+                    "type": "Basic",
+                    "username": "devfest"
+                },
+                "method": "GET",
+                "uri": "https://devfest.azurehdinsight.net/livy/batches/@{outputs('Compose')}/state"
+            }
+        },
+        "Initialize_variable": {
+            "runAfter": {
+                "Primary_actions": [
+                    "Succeeded"
+                ]
+            },
+            "type": "InitializeVariable",
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "id",
+                        "type": "Integer",
+                        "value": "@body('Parse_JSON')?['id']"
+                    }
+                ]
+            }
+        },
+        "Initialize_variable_2": {
+            "runAfter": {
+                "Parse_JSON_2": [
+                    "Succeeded"
+                ]
+            },
+            "type": "InitializeVariable",
+            "inputs": {
+                "variables": [
+                    {
+                        "name": "state",
+                        "type": "String",
+                        "value": "@body('Parse_JSON')?['state']"
+                    }
+                ]
+            }
+        },
+        "Parse_JSON_2": {
+            "runAfter": {
+                "HTTP": [
+                    "Succeeded"
+                ]
+            },
+            "type": "ParseJson",
+            "inputs": {
+                "content": "@body('HTTP')",
+                "schema": {
+                    "properties": {
+                        "id": {
+                            "type": "integer"
+                        },
+                        "state": {
+                            "type": "string"
+                        }
+                    },
+                    "type": "object"
+                }
+            }
+        },
+        "Primary_actions": {
+            "actions": {
+                "Call_HTTP": {
+                    "runAfter": {},
+                    "type": "Http",
+                    "inputs": {
+                        "authentication": {
+                            "password": "Terraform123!",
+                            "type": "Basic",
+                            "username": "devfest"
+                        },
+                        "body": {
+                            "className": "com.sparkbyexamples.spark.SparkSessionTest",
+                            "file": "wasb:///tmp/spark-examples-1.0-SNAPSHOT.jar"
+                        },
+                        "headers": {
+                            "Content-Type": "application/json",
+                            "X-Requested-By": "admin"
+                        },
+                        "method": "POST",
+                        "uri": "https://devfest.azurehdinsight.net/livy/batches"
+                    }
+                },
+                "Parse_JSON": {
+                    "runAfter": {
+                        "Call_HTTP": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "ParseJson",
+                    "inputs": {
+                        "content": "@body('Call_HTTP')",
+                        "schema": {
+                            "properties": {
+                                "appId": {},
+                                "appInfo": {
+                                    "properties": {
+                                        "driverLogUrl": {},
+                                        "sparkUiUrl": {}
+                                    },
+                                    "type": "object"
+                                },
+                                "id": {
+                                    "type": "integer"
+                                },
+                                "log": {
+                                    "items": {
+                                        "type": "string"
+                                    },
+                                    "type": "array"
+                                },
+                                "state": {
+                                    "type": "string"
+                                }
+                            },
+                            "type": "object"
+                        }
+                    }
+                }
+            },
+            "runAfter": {},
+            "type": "Scope",
+            "description": "Default actions to be executed at the time specified."
+        },
+        "Until": {
+            "actions": {
+                "HTTP_2": {
+                    "runAfter": {},
+                    "type": "Http",
+                    "inputs": {
+                        "authentication": {
+                            "password": "Terraform123!",
+                            "type": "Basic",
+                            "username": "devfest"
+                        },
+                        "method": "GET",
+                        "uri": "https://devfest.azurehdinsight.net/livy/batches/@{outputs('Compose')}/state"
+                    }
+                },
+                "Parse_JSON_3": {
+                    "runAfter": {
+                        "HTTP_2": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "ParseJson",
+                    "inputs": {
+                        "content": "@body('HTTP_2')",
+                        "schema": {
+                            "properties": {
+                                "id": {
+                                    "type": "integer"
+                                },
+                                "state": {
+                                    "type": "string"
+                                }
+                            },
+                            "type": "object"
+                        }
+                    }
+                },
+                "Set_variable": {
+                    "runAfter": {
+                        "Parse_JSON_3": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "SetVariable",
+                    "inputs": {
+                        "name": "state",
+                        "value": "@body('Parse_JSON_3')?['state']"
+                    }
+                }
+            },
+            "runAfter": {
+                "Initialize_variable_2": [
+                    "Succeeded"
+                ]
+            },
+            "expression": "@equals(variables('state'), 'dead')",
+            "limit": {
+                "count": 60,
+                "timeout": "PT1H"
+            },
+            "type": "Until"
+        }
+    },
+    "outputs": {}
+}
