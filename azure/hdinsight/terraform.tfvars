@@ -18,7 +18,7 @@ azurerm_hdinsight_spark_cluster_username = "devfest"
 
 azurerm_hdinsight_spark_cluster_password = "Terraform123!"
 
-azurerm_hdinsight_spark_cluster_head_node_vmsize = "Standard_D2"
+azurerm_hdinsight_spark_cluster_head_node_vmsize = "Standard_D3"
 
 azurerm_hdinsight_spark_cluster_worker_node_vmsize = "Standard_D3"
 
