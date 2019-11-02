@@ -3,17 +3,6 @@ provider "google" {
     project = "${var.projectID}"
     region = "${var.region}"
 }
-/*
-terraform {
-  backend "remote" {
-    organization = "empathy"
-
-    workspaces {
-      name = "gcp-devfest"
-    }
-  }
-}
-*/
 
 terraform {
   backend "gcs" {
