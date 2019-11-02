@@ -3,6 +3,17 @@ provider "google" {
     project = "${var.projectID}"
     region = "${var.region}"
 }
+/*
+terraform {
+  backend "remote" {
+    organization = "empathy"
+
+    workspaces {
+      name = "gcp-devfest"
+    }
+  }
+}
+*/
 
 terraform {
   backend "gcs" {
@@ -10,6 +21,8 @@ terraform {
     prefix         = "sandbox/devfest/resources"
   }
 }
+
+
 resource "google_storage_bucket" "dataproc" {
   name     = "${var.google_storage_bucket_name_dataproc}"
   location = "${var.google_storage_bucket_location}"
