@@ -2,3 +2,5 @@
 *.plan
 *.terraform
 *.backup
+*.serverless
+*.info
