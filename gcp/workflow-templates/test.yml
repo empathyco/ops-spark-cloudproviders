@@ -2,9 +2,12 @@
 #gcloud dataproc workflow-templates instantiate-from-file --file test.yml --region europe-west1
 jobs:
 - sparkJob:
+    args:
+    - gs://example-talk/input/movie_metadata.csv
+    - gs://devfest-jars/parquetData/ 
     jarFileUris:
-    - gs://devfest-jars/spark-examples-1.0-SNAPSHOT.jar
-    mainClass: com.sparkbyexamples.spark.SparkSessionTest
+    - gs://devfest-jars/SparkSimpleApp.jar
+    mainClass: SparkSimpleApp.ParquetFilm
     properties:
       spark.driver.cores: '1'
       spark.driver.memory: 2g
@@ -12,7 +15,25 @@ jobs:
       spark.yarn.am.cores: '2'
       spark.yarn.am.memory: 2g
       spark.yarn.queue: default
-  stepId: devfest-spark-example
+  stepId: devfest-parquet-data
+- prerequisiteStepIds:
+  - devfest-parquet-data
+  sparkJob:
+    args:
+    - gs://devfest-jars/parquetData/ 
+    - gs://devfest-jars/processedData/
+    - Tarantino 
+    jarFileUris:
+    - gs://devfest-jars/SparkSimpleApp.jar
+    mainClass: SparkSimpleApp.FilterFilm
+    properties:
+      spark.driver.cores: '1'
+      spark.driver.memory: 2g
+      spark.executor.instances: '1'
+      spark.yarn.am.cores: '2'
+      spark.yarn.am.memory: 2g
+      spark.yarn.queue: default
+  stepId: devfest-processed-data
 placement:
   managedCluster:
     clusterName: devfest-workflow
@@ -20,8 +41,8 @@ placement:
       configBucket: devfest-dataproc
       gceClusterConfig:
         internalIpOnly: true
-        serviceAccount: devfest@sandbox-233511.iam.gserviceaccount.com
-        subnetworkUri: https://www.googleapis.com/compute/v1/projects/sandbox-233511/regions/europe-west1/subnetworks/sandbox-subnet
+        serviceAccount: devfest@sandbox-XXXXXX.iam.gserviceaccount.com
+        subnetworkUri: https://www.googleapis.com/compute/v1/projects/sandbox-XXXXXX/regions/europe-west1/subnetworks/sandbox-subnet
         zoneUri: europe-west1-d
       initializationActions:
       - executableFile: gs://devfest-dataproc/livy-initialization/custom_livy.sh
