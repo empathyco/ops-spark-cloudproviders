@@ -1,0 +1,72 @@
+[
+  {
+    "Classification": "spark-defaults",
+    "Properties": {
+      "spark.dynamicAllocation.enabled": "false",
+      "spark.yarn.app.container.log.dir": "/mnt/var/log/hadoop"
+    }
+  },
+  {
+    "Classification": "core-site",
+    "Properties": {
+      "fs.s3.acl.default": "BucketOwnerFullControl",
+      "fs.s3a.acl.default": "BucketOwnerFullControl",
+      "fs.s3n.acl.default": "BucketOwnerFullControl",
+      "fs.s3.canned.acl": "BucketOwnerFullControl",
+      "fs.s3a.canned.acl": "BucketOwnerFullControl",
+      "fs.s3n.canned.acl": "BucketOwnerFullControl"
+    }
+  },
+  {
+    "Classification": "emrfs-site",
+    "Properties": {
+      "fs.s3.consistent.retryCount": "3",
+      "fs.s3.consistent.metadata.tableName": "EmrFSMetadata",
+      "fs.s3.consistent": "true",
+      "fs.s3.consistent.metadata.autoCreate" : "true",
+      "fs.s3.consistent.retryPeriodSeconds": "5",
+      "fs.s3.consistent.metadata.read.capacity":"50",
+      "fs.s3.consistent.metadata.write.capacity":"10"
+    }
+  },
+  {
+    "Classification": "yarn-site",
+    "Properties": {
+      "yarn.acl.enabled": "true",
+      "yarn.resourcemanager.scheduler.class": "org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity.CapacityScheduler",
+      "yarn.node-labels.am.default-node-label-expression": ""
+    }
+  },
+  {
+    "Classification": "capacity-scheduler",
+    "Properties": {
+      "yarn.scheduler.minimum-allocation-mb": "1000",
+      "yarn.scheduler.capacity.maximum-applications": "100",
+      "yarn.scheduler.capacity.maximum-am-resource-percent": "1.0",
+      "yarn.scheduler.capacity.root.queues": "main,core",
+      "yarn.scheduler.capacity.root.accessible-node-labels": "*",
+      "yarn.scheduler.capacity.root.accessible-node-labels.CORE.capacity": "100",
+      "yarn.scheduler.capacity.root.accessible-node-labels.CORE.maximum-capacity": "100",
+
+      "yarn.scheduler.capacity.root.main.state": "RUNNING",
+      "yarn.scheduler.capacity.root.main.acl_submit_applications": "*",
+      "yarn.scheduler.capacity.root.main.capacity": "85",
+      "yarn.scheduler.capacity.root.main.user-limit-factor": "2",
+      "yarn.scheduler.capacity.root.main.maximum-capacity": "100",
+      "yarn.scheduler.capacity.root.main.accesible-node-labels": "",
+      "yarn.scheduler.capacity.root.main.default-node-label-expression": "",
+     
+
+      "yarn.scheduler.capacity.root.core.state": "RUNNING",
+      "yarn.scheduler.capacity.root.core.acl_submit_applications": "*",
+      "yarn.scheduler.capacity.root.core.capacity": "15",
+      "yarn.scheduler.capacity.root.core.user-limit-factor": "2",
+      "yarn.scheduler.capacity.root.core.maximum-capacity": "100",
+      "yarn.scheduler.capacity.root.core.accesible-node-labels": "CORE",
+      "yarn.scheduler.capacity.root.core.accessible-node-labels.CORE.capacity": "100",
+      "yarn.scheduler.capacity.root.core.accessible-node-labels.CORE.maximum-capacity": "100",
+      "yarn.scheduler.capacity.root.core.default-node-label-expression": "CORE"
+    }
+  }
+
+]
