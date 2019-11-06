@@ -1,0 +1,121 @@
+
+
+service: emr-devfest
+frameworkVersion: ">=1.28.0 <2.0.0"
+
+
+custom: 
+    emrLibsPath: 
+      staging: "s3://devfest-emr-2163418192"
+    endpoint:
+      staging: "https://livy-devfest.internal.empathybroker.com/batches"
+    role: 
+      staging: "arn:aws:iam::XXXXXXXXXXX:role/lambda-basic"  
+    driverCoresDevfest:
+      staging: 1
+    driverMemoryDevfest: 
+      staging: "1g"
+    executorCoresDevfest: 
+      staging: 2
+    executorMemoryDevfest: 
+      staging: "1g"
+    numExecutorsDevfest: 
+      staging: 2
+    jarPathDevfest:
+      staging: "jars/SparkSimpleApp.jar"
+    queueDevfest: 
+      staging: "main"
+    args: 
+      staging: "s3://devfest-emr-2163418192/input_movie_metadata.csv"
+    securityGroups:
+      staging: "sg-...."
+    subnet1:
+      staging: "subnet-...."
+    subnet2: 
+      staging: "subnet-...." 
+    subnet3: 
+      staging: "subnet-..."
+    stages: 
+      - staging
+    
+package: 
+  individually: true
+  exclude: 
+     - ./**
+
+provider:
+  name: aws
+  runtime: python3.6
+  memorySize: 128
+  timeout: 180
+  stage: ${opt:stage,'staging'}
+  region: eu-west-1
+  vpc: 
+    securityGroupIds:
+          - ${self:custom.securityGroups.${self:provider.stage}}
+    subnetIds:
+          - ${self:custom.subnet1.${self:provider.stage}}
+          - ${self:custom.subnet2.${self:provider.stage}}
+          - ${self:custom.subnet3.${self:provider.stage}}
+  tags:
+      env: ${self:provider.stage}
+      management: serverless
+    
+functions:
+  #staging&production
+  devfest-parquet-data:
+    name: devfest-parquet-data
+    handler: devfest/devfest.lambda_handler
+    role: ${self:custom.role.${self:provider.stage}}
+    package: 
+      include: 
+        - devfest/*
+    environment:
+      driverCores: ${self:custom.driverCoresDevfest.${self:provider.stage}}
+      driverMemory: ${self:custom.driverMemoryDevfest.${self:provider.stage}}
+      endpoint: ${self:custom.endpoint.${self:provider.stage}}
+      executorCores: ${self:custom.executorCoresDevfest.${self:provider.stage}}
+      executorMemory: ${self:custom.executorMemoryDevfest.${self:provider.stage}}
+      numExecutors: ${self:custom.numExecutorsDevfest.${self:provider.stage}}
+      queue: ${self:custom.queueDevfest.${self:provider.stage}}
+      args0: "s3://devfest-emr-2163418192/input_movie_metadata.csv"
+      args1: "s3://devfest-emr-2163418192/parquetData/"
+      args2: ""
+      emrLibsPath: ${self:custom.emrLibsPath.${self:provider.stage}}
+      className: "SparkSimpleApp.ParquetFilm"
+      jarPath: ${self:custom.jarPathDevfest.${self:provider.stage}}
+
+  devfest-processed-data:
+    name: devfest-processed-data
+    handler: devfest/devfest.lambda_handler
+    role: ${self:custom.role.${self:provider.stage}}
+    package: 
+      include: 
+        - devfest/*
+    environment:
+      driverCores: ${self:custom.driverCoresDevfest.${self:provider.stage}}
+      driverMemory: ${self:custom.driverMemoryDevfest.${self:provider.stage}}
+      endpoint: ${self:custom.endpoint.${self:provider.stage}}
+      executorCores: ${self:custom.executorCoresDevfest.${self:provider.stage}}
+      executorMemory: ${self:custom.executorMemoryDevfest.${self:provider.stage}}
+      numExecutors: ${self:custom.numExecutorsDevfest.${self:provider.stage}}
+      queue: ${self:custom.queueDevfest.${self:provider.stage}}
+      args0: "s3://devfest-emr-2163418192/parquetData/"
+      args1: "s3://devfest-emr-2163418192/processedData/"
+      args2: "Leone"
+      emrLibsPath: ${self:custom.emrLibsPath.${self:provider.stage}}
+      className: "SparkSimpleApp.FilterFilm"
+      jarPath: ${self:custom.jarPathDevfest.${self:provider.stage}}
+
+
+#staging&production
+  get-livy-status: 
+    name: devfest-get-livy-status
+    handler: get_livy_status/get_livy_status.lambda_handler
+    role: ${self:custom.role.${self:provider.stage}}
+    package: 
+      include: 
+        - get_livy_status/*
+    environment:
+      endpoint: ${self:custom.endpoint.${self:provider.stage}}
+

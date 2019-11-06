@@ -15,7 +15,6 @@ package:
     - ./**
 
 provider:
-  #deploymentBucket: eb-resources-serverless-deployments-q5rpi5vi
   name: aws
   runtime: go1.x
   memorySize: 128
