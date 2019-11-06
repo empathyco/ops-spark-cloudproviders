@@ -1,0 +1,166 @@
+{
+    "Comment": "A state machine that submits jobs to EMR and monitors them until be completed.",
+    "StartAt": "Devfest Parquet Data",
+    "States": {
+      "Devfest Parquet Data": {
+        "Type": "Task",
+        "Resource": "arn:aws:lambda:eu-west-1:323361102328:function:devfest-parquet-data",
+        "ResultPath": "$.devfest_parquet_data_jobId",
+        "Next": "Devfest Parquet Data Wait",
+        "Retry": [
+          {
+            "ErrorEquals": ["States.ALL"],
+            "IntervalSeconds": 1,
+            "MaxAttempts": 1,
+            "BackoffRate": 2
+          }
+        ]
+      },
+  
+      "Devfest Parquet Data Wait": {
+        "Type": "Wait",
+        "Seconds": 60,
+        "Next": "Devfest Parquet Data Get Status"
+      },
+  
+      "Devfest Parquet Data Get Status": {
+        "Type": "Task",
+        "Resource": "arn:aws:lambda:eu-west-1:323361102328:function:devfest-get-livy-status",
+        "Next": "Devfest Parquet Data Complete?",
+        "InputPath": "$.devfest_parquet_data_jobId",
+        "ResultPath": "$.devfest_parquet_data_status",
+        "Retry": [
+          {
+            "ErrorEquals": ["States.ALL"],
+            "IntervalSeconds": 1,
+            "MaxAttempts": 1,
+            "BackoffRate": 2
+          }
+        ]
+      },
+  
+      "Devfest Parquet Data Complete?": {
+        "Type": "Choice",
+        "Choices": [
+          {
+            "Variable": "$.devfest_parquet_data_status",
+            "StringEquals": "error",
+            "Next": "Devfest Parquet Data Alert"
+          },
+          {
+            "Variable": "$.devfest_parquet_data_status",
+            "StringEquals": "dead",
+            "Next": "Devfest Parquet Data Alert"
+          },
+          {
+            "Variable": "$.devfest_parquet_data_status",
+            "StringEquals": "success",
+            "Next": "Devfest Parquet Data Done"
+          }
+        ],
+        "Default": "Devfest Parquet Data Wait"
+      },
+      "Devfest Parquet Data Alert": {
+        "Type": "Task",
+        "Resource": "arn:aws:lambda:eu-west-1:323361102328:function:devfest-monitoring",
+        "Next": "Devfest Parquet Data Failed",
+        "InputPath": "$.message"
+      },
+      "Devfest Parquet Data Failed": {
+        "Type": "Fail",
+        "Cause": "AWS Batch Job Failed",
+        "Error": "Devfest Parquet Data Job returned FAILED"
+      },
+      "Devfest Parquet Data Done": {
+        "Type": "Parallel",
+        "Next": "Finish",
+        "Branches": [
+          {
+            "StartAt": "Devfest Processed Data",
+            "States": {
+              "Devfest Processed Data": {
+                "Type": "Task",
+                "Resource": "arn:aws:lambda:eu-west-1:323361102328:function:devfest-processed-data",
+                "ResultPath": "$.devfest_processed_data_jobId",
+                "Next": "Devfest Processed Data Wait",
+                "Retry": [
+                  {
+                    "ErrorEquals": ["States.ALL"],
+                    "IntervalSeconds": 1,
+                    "MaxAttempts": 1,
+                    "BackoffRate": 2
+                  }
+                ]
+              },
+  
+              "Devfest Processed Data Wait": {
+                "Type": "Wait",
+                "Seconds": 60,
+                "Next": "Devfest Processed Data Get Status"
+              },
+  
+              "Devfest Processed Data Get Status": {
+                "Type": "Task",
+                "Resource": "arn:aws:lambda:eu-west-1:323361102328:function:devfest-get-livy-status",
+                "Next": "Devfest Processed Data Complete?",
+                "InputPath": "$.devfest_processed_data_jobId",
+                "ResultPath": "$.devfest_processed_data_status",
+                "Retry": [
+                  {
+                    "ErrorEquals": ["States.ALL"],
+                    "IntervalSeconds": 1,
+                    "MaxAttempts": 1,
+                    "BackoffRate": 2
+                  }
+                ]
+              },
+  
+              "Devfest Processed Data Complete?": {
+                "Type": "Choice",
+                "Choices": [
+                  {
+                    "Variable": "$.devfest_processed_data_status",
+                    "StringEquals": "error",
+                    "Next": "Devfest Processed Data Alert"
+                  },
+                  {
+                    "Variable": "$.devfest_processed_data_status",
+                    "StringEquals": "dead",
+                    "Next": "Devfest Processed Data Alert"
+                  },
+                  {
+                    "Variable": "$.devfest_processed_data_status",
+                    "StringEquals": "success",
+                    "Next": "Devfest Processed Data Done"
+                  }
+                ],
+                "Default": "Devfest Processed Data Wait"
+              },
+              
+              "Devfest Processed Data Alert": {
+                "Type": "Task",
+                "Resource": "arn:aws:lambda:eu-west-1:323361102328:function:devfest-monitoring",
+                "Next": "Devfest Processed Data Failed",
+                "InputPath": "$.message"
+              },
+  
+              "Devfest Processed Data Done": {
+                "Type": "Succeed"
+              },
+            
+              "Devfest Processed Data Failed": {
+                "Type": "Fail",
+                "Cause": "AWS Batch Job Failed",
+                "Error": "Devfest Processed Data Job returned FAILED"
+              }
+            }
+          }
+        ]
+      },
+      
+      "Finish": {
+        "Type": "Pass",
+        "End": true
+      }
+    }
+  }
