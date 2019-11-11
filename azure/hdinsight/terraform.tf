@@ -66,3 +66,5 @@ resource "azurerm_hdinsight_spark_cluster" "example" {
     }
   }
 }
+
+
