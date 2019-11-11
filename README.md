@@ -16,9 +16,16 @@ Using Google Cloud Dataproc Workflow Templates API to automate Spark and Hadoop 
 ### HDInsight 
 A HDInsight Cluster using Terraform
 ### Logic App
-Logic App based on a json file, and it would be imported using Azure extension for VS Code
+Logic App based on a json file, and it would be imported using Azure extension for VS Code or directly from Azure console
 
 ## Jars
 
-### Examples
-Initial example from https://github.com/nnkumar13/nelamalli-projects-test/blob/master/spark-examples/src/main/scala/com/nelamalli/spark/SparkSessionTest.scala 
+SparkSimpleApp.jar
+
+### Parquet Film 
+
+Scala code to save data in parquet from a csv input file. The job has two arguments (Input path and Outpath path)
+
+### Filter Film
+
+Scala code to process the data saved in parquet in the job before and filter by Film Director. The job has three arguments (Input path, output path and director name)
