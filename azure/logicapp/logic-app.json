@@ -20,33 +20,16 @@
         }
     },
     "actions": {
-        "Compose": {
-            "runAfter": {
-                "Initialize_variable": [
-                    "Succeeded"
-                ]
-            },
-            "type": "Compose",
-            "inputs": "@variables('id')"
-        },
         "Condition": {
-            "actions": {
-                "Terminate": {
-                    "runAfter": {},
-                    "type": "Terminate",
-                    "inputs": {
-                        "runStatus": "Succeeded"
-                    }
-                }
-            },
+            "actions": {},
             "runAfter": {
-                "Until": [
+                "Until_Parquet_Job": [
                     "Succeeded"
                 ]
             },
             "else": {
                 "actions": {
-                    "Terminate_2": {
+                    "Terminate_Job_Parquet": {
                         "runAfter": {},
                         "type": "Terminate",
                         "inputs": {
@@ -63,31 +46,14 @@
                     {
                         "equals": [
                             "@variables('state')",
-                            "dead"
+                            "success"
                         ]
                     }
                 ]
             },
             "type": "If"
         },
-        "HTTP": {
-            "runAfter": {
-                "Compose": [
-                    "Succeeded"
-                ]
-            },
-            "type": "Http",
-            "inputs": {
-                "authentication": {
-                    "password": "Terraform123!",
-                    "type": "Basic",
-                    "username": "devfest"
-                },
-                "method": "GET",
-                "uri": "https://devfest.azurehdinsight.net/livy/batches/@{outputs('Compose')}/state"
-            }
-        },
-        "Initialize_variable": {
+        "Initialize_variable_id": {
             "runAfter": {
                 "Primary_actions": [
                     "Succeeded"
@@ -99,14 +65,14 @@
                     {
                         "name": "id",
                         "type": "Integer",
-                        "value": "@body('Parse_JSON')?['id']"
+                        "value": "@body('Parse_JSON_Parquet_Data')?['id']"
                     }
                 ]
             }
         },
-        "Initialize_variable_2": {
+        "Initialize_variable_status": {
             "runAfter": {
-                "Parse_JSON_2": [
+                "Initialize_variable_id": [
                     "Succeeded"
                 ]
             },
@@ -116,36 +82,23 @@
                     {
                         "name": "state",
                         "type": "String",
-                        "value": "@body('Parse_JSON')?['state']"
+                        "value": "@body('Parse_JSON_Parquet_Data')?['state']"
                     }
                 ]
             }
         },
-        "Parse_JSON_2": {
+        "Compose_id_parquet_data": {
             "runAfter": {
-                "HTTP": [
+                "Initialize_variable_status": [
                     "Succeeded"
                 ]
             },
-            "type": "ParseJson",
-            "inputs": {
-                "content": "@body('HTTP')",
-                "schema": {
-                    "properties": {
-                        "id": {
-                            "type": "integer"
-                        },
-                        "state": {
-                            "type": "string"
-                        }
-                    },
-                    "type": "object"
-                }
-            }
+            "type": "Compose",
+            "inputs": "@variables('id')"
         },
         "Primary_actions": {
             "actions": {
-                "Call_HTTP": {
+                "Parquet_Data_Job": {
                     "runAfter": {},
                     "type": "Http",
                     "inputs": {
@@ -155,8 +108,12 @@
                             "username": "devfest"
                         },
                         "body": {
-                            "className": "com.sparkbyexamples.spark.SparkSessionTest",
-                            "file": "wasb:///tmp/spark-examples-1.0-SNAPSHOT.jar"
+                            "args": [
+                                "wasb:///tmp/input_movie_metadata.csv",
+                                "wasb:///tmp/parquetData"
+                            ],
+                            "className": "SparkSimpleApp.ParquetFilm",
+                            "file": "wasb:///tmp/SparkSimpleApp.jar"
                         },
                         "headers": {
                             "Content-Type": "application/json",
@@ -166,15 +123,15 @@
                         "uri": "https://devfest.azurehdinsight.net/livy/batches"
                     }
                 },
-                "Parse_JSON": {
+                "Parse_JSON_Parquet_Data": {
                     "runAfter": {
-                        "Call_HTTP": [
+                        "Parquet_Data_Job": [
                             "Succeeded"
                         ]
                     },
                     "type": "ParseJson",
                     "inputs": {
-                        "content": "@body('Call_HTTP')",
+                        "content": "@body('Parquet_Data_Job')",
                         "schema": {
                             "properties": {
                                 "appId": {},
@@ -207,9 +164,129 @@
             "type": "Scope",
             "description": "Default actions to be executed at the time specified."
         },
-        "Until": {
+        "Secondary_actions": {
             "actions": {
-                "HTTP_2": {
+                "Filter_Film_Job": {
+                    "runAfter": {},
+                    "type": "Http",
+                    "inputs": {
+                        "authentication": {
+                            "password": "Terraform123!",
+                            "type": "Basic",
+                            "username": "devfest"
+                        },
+                        "body": {
+                            "args": [
+                                "wasb:///tmp/parquetData",
+                                "wasb:///tmp/processedData",
+                                "Leone"
+                            ],
+                            "className": "SparkSimpleApp.FilterFilm",
+                            "file": "wasb:///tmp/SparkSimpleApp.jar"
+                        },
+                        "headers": {
+                            "Content-Type": "application/json",
+                            "X-Requested-By": "admin"
+                        },
+                        "method": "POST",
+                        "uri": "https://devfest.azurehdinsight.net/livy/batches"
+                    }
+                },
+                "Parse_JSON_Filter_Film": {
+                    "runAfter": {
+                        "Filter_Film_Job": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "ParseJson",
+                    "inputs": {
+                        "content": "@body('Filter_Film_Job')",
+                        "schema": {
+                            "properties": {
+                                "appId": {},
+                                "appInfo": {
+                                    "properties": {
+                                        "driverLogUrl": {},
+                                        "sparkUiUrl": {}
+                                    },
+                                    "type": "object"
+                                },
+                                "id": {
+                                    "type": "integer"
+                                },
+                                "log": {
+                                    "items": {
+                                        "type": "string"
+                                    },
+                                    "type": "array"
+                                },
+                                "state": {
+                                    "type": "string"
+                                }
+                            },
+                            "type": "object"
+                        }
+                    }
+                }
+            },
+            "runAfter": {
+                "Condition": [
+                    "Succeeded"
+                ]
+            },
+            "type": "Scope",
+            "description": "Default actions to be executed at the time specified."
+        },
+        "Set_variable_id_filter_film_job": {
+            "runAfter": {
+                "Secondary_actions": [
+                    "Succeeded"
+                ]
+            },
+            "type": "SetVariable",
+            "inputs": {
+                "name": "id",
+                "value": "@body('Parse_JSON_Filter_Film')?['id']"
+            }
+        },
+        "Set_variable_status_filter_film_job": {
+            "runAfter": {
+                "Set_variable_id_filter_film_job": [
+                    "Succeeded"
+                ]
+            },
+            "type": "SetVariable",
+            "inputs": {
+                "name": "state",
+                "value": "@body('Parse_JSON_Filter_Film')?['state']"
+            }
+        },
+        "Compose_ID_Filter_Job": {
+            "runAfter": {
+                "Set_variable_status_filter_film_job": [
+                    "Succeeded"
+                ]
+            },
+            "type": "Compose",
+            "inputs": "@variables('id')"
+        },
+        "Until_Filter_Job": {
+            "actions": {
+                "Delay_Filter_Job": {
+                    "runAfter": {
+                        "Set_variable_State": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Wait",
+                    "inputs": {
+                        "interval": {
+                            "count": 30,
+                            "unit": "Second"
+                        }
+                    }
+                },
+                "HTTP_Filter_Job": {
                     "runAfter": {},
                     "type": "Http",
                     "inputs": {
@@ -219,18 +296,18 @@
                             "username": "devfest"
                         },
                         "method": "GET",
-                        "uri": "https://devfest.azurehdinsight.net/livy/batches/@{outputs('Compose')}/state"
+                        "uri": "https://devfest.azurehdinsight.net/livy/batches/@{outputs('Compose_ID_Filter_Job')}/state"
                     }
                 },
-                "Parse_JSON_3": {
+                "Parse_JSON_Filter_Job": {
                     "runAfter": {
-                        "HTTP_2": [
+                        "HTTP_Filter_Job": [
                             "Succeeded"
                         ]
                     },
                     "type": "ParseJson",
                     "inputs": {
-                        "content": "@body('HTTP_2')",
+                        "content": "@body('HTTP_Filter_Job')",
                         "schema": {
                             "properties": {
                                 "id": {
@@ -244,30 +321,139 @@
                         }
                     }
                 },
-                "Set_variable": {
+                "Set_variable_State": {
                     "runAfter": {
-                        "Parse_JSON_3": [
+                        "Parse_JSON_Filter_Job": [
                             "Succeeded"
                         ]
                     },
                     "type": "SetVariable",
                     "inputs": {
                         "name": "state",
-                        "value": "@body('Parse_JSON_3')?['state']"
+                        "value": "@body('Parse_JSON_Filter_Job')?['state']"
                     }
                 }
             },
             "runAfter": {
-                "Initialize_variable_2": [
+                "Compose_ID_Filter_Job": [
                     "Succeeded"
                 ]
             },
-            "expression": "@equals(variables('state'), 'dead')",
+            "expression": "@equals(variables('state'), 'success')",
             "limit": {
                 "count": 60,
                 "timeout": "PT1H"
             },
             "type": "Until"
+        },
+        "Until_Parquet_Job": {
+            "actions": {
+                "Delay": {
+                    "runAfter": {
+                        "Set_variable_Parquet_State": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Wait",
+                    "inputs": {
+                        "interval": {
+                            "count": 30,
+                            "unit": "Second"
+                        }
+                    }
+                },
+                "Get_Livy_Status_Parquet": {
+                    "runAfter": {},
+                    "type": "Http",
+                    "inputs": {
+                        "authentication": {
+                            "password": "Terraform123!",
+                            "type": "Basic",
+                            "username": "devfest"
+                        },
+                        "method": "GET",
+                        "uri": "https://devfest.azurehdinsight.net/livy/batches/@{outputs('Compose_id_parquet_data')}/state"
+                    }
+                },
+                "Parse_JSON_Parquet": {
+                    "runAfter": {
+                        "Get_Livy_Status_Parquet": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "ParseJson",
+                    "inputs": {
+                        "content": "@body('Get_Livy_Status_Parquet')",
+                        "schema": {
+                            "properties": {
+                                "id": {
+                                    "type": "integer"
+                                },
+                                "state": {
+                                    "type": "string"
+                                }
+                            },
+                            "type": "object"
+                        }
+                    }
+                },
+                "Set_variable_Parquet_State": {
+                    "runAfter": {
+                        "Parse_JSON_Parquet": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "SetVariable",
+                    "inputs": {
+                        "name": "state",
+                        "value": "@body('Parse_JSON_Parquet')?['state']"
+                    }
+                }
+            },
+            "runAfter": {
+                "Compose_id_parquet_data": [
+                    "Succeeded"
+                ]
+            },
+            "expression": "@equals(variables('state'), 'success')",
+            "limit": {
+                "count": 60,
+                "timeout": "PT1H"
+            },
+            "type": "Until"
+        },
+        "Condition_Filter_Job": {
+            "actions": {},
+            "runAfter": {
+                "Until_Filter_Job": [
+                    "Succeeded"
+                ]
+            },
+            "else": {
+                "actions": {
+                    "Terminate_Job": {
+                        "runAfter": {},
+                        "type": "Terminate",
+                        "inputs": {
+                            "runError": {
+                                "code": "@variables('state')"
+                            },
+                            "runStatus": "Failed"
+                        }
+                    }
+                }
+            },
+            "expression": {
+                "and": [
+                    {
+                        "equals": [
+                            "@variables('state')",
+                            "success"
+                        ]
+                    }
+                ]
+            },
+            "type": "If"
         }
     },
     "outputs": {}
