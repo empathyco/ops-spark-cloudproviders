@@ -29,3 +29,7 @@ Scala code to save data in parquet from a csv input file. The job has two argume
 ### Filter Film
 
 Scala code to process the data saved in parquet in the job before and filter by Film Director. The job has three arguments (Input path, output path and director name)
+
+### Slides
+
+[Slides](https://docs.google.com/presentation/d/1y0ixd8Hu41Rn8itF7qnY7SbOwsZHCT_WiOhpbk1ISQc/edit?usp=sharing)
